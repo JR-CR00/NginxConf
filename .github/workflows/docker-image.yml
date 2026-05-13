@@ -1,0 +1,76 @@
+name: Nginx Proxy CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Git Semantic Version
+      uses: paulhatch/semantic-version@v5.4.0
+      with:
+        tag_prefix: "v"
+        major_pattern: "major:"
+        minor_pattern: "feat:"
+        version_format: "${major}.${minor}.${patch}-prerelease${increment}"
+        bump_each_commit: true
+      id: version
+
+    - name: Set Keys
+      run: |
+        echo "NEW_VERSION=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
+
+    - name: Docker Login
+      env:
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+
+    - name: Build Image
+      run: |
+        docker build -t "jrvargas/nginx_conf:$NEW_VERSION" .
+        docker build -t "jrvargas/nginx_conf:latest" .
+
+    - name: Push Image
+      run: |
+        docker push "jrvargas/nginx_conf:$NEW_VERSION"
+        docker push "jrvargas/nginx_conf:latest"
+
+    - name: Docker Logout
+      run: docker logout
+
+  deploy-image:
+    needs: build-image
+    runs-on: self-hosted
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Docker Login
+      env:
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+
+    - name: Deploy
+      env:
+        NEW_VERSION: ${{ needs.build-image.outputs.version }}
+      run: |
+        docker compose pull
+        docker compose up -d --build --remove-orphans
+
+    - name: Docker Logout
+      run: docker logout
