@@ -1,0 +1,14 @@
+services:
+  nginx:
+    build: .                    # ← construye desde el Dockerfile
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    name: proxy-network
+    external: true
