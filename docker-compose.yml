@@ -1,15 +1,15 @@
 services:
   nginx:
-    build: .                    # ← construye desde el Dockerfile
+    build: .
     container_name: nginx-proxy
     restart: unless-stopped
     ports:
       - "80:80"
+    volumes:
+      - laravel_public:/var/www/laravel/public:ro
+      - laravel_storage:/var/www/laravel/storage/app/public:ro
     networks:
       - proxy-network
-    volumes:
-      - laravel_public:/var/www/html/public:ro
-      - laravel_storage:/var/www/html/storage/app/public:ro
 
 networks:
   proxy-network:
