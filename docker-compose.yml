@@ -15,3 +15,9 @@ networks:
   proxy-network:
     name: proxy-network
     external: true
+
+volumes:
+  laravel_public:
+    external: true
+  laravel_storage:
+    external: true
