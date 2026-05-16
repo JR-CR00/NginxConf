@@ -7,6 +7,9 @@ services:
       - "80:80"
     networks:
       - proxy-network
+    volumes:
+      - laravel_public:/var/www/html/public:ro
+      - laravel_storage:/var/www/html/storage/app/public:ro
 
 networks:
   proxy-network:
